@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de Restritos | Bt Blue</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Config Tailwind -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e293b',
+                        },
+                        dark: {
+                            bg: '#020617',    // base
+                            card: '#020617',
+                            border: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 18px 45px rgba(15,23,42,0.55)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Fonte + Ícones -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- SheetJS -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 dark:bg-dark-bg dark:text-slate-100">
+
+<div class="min-h-screen bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col">
+
+    <!-- HEADER -->
+    <header class="w-full border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="h-9 w-9 rounded-xl bg-brand-600/10 flex items-center justify-center border border-brand-600/40">
+                    <i class="fa-solid fa-shield-halved text-brand-600"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-semibold tracking-tight">
+                        Análise de Restritos <span class="text-brand-600">Bt Blue</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        Verificação de CNPJs com base em planilha de restritos.
+                    </p>
+                </div>
+            </div>
+
+            <button
+                onclick="toggleTheme()"
+                class="inline-flex items-center gap-2 rounded-full border border-slate-300/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-brand-500 hover:text-brand-700 dark:hover:border-brand-500 dark:hover:text-white transition-colors"
+                title="Alternar tema claro/escuro">
+                <i class="fa-solid fa-moon text-[12px] block dark:hidden"></i>
+                <i class="fa-solid fa-sun text-[12px] hidden dark:block text-yellow-300"></i>
+                <span class="hidden sm:inline">Tema</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="flex-1">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+
+            <!-- PAINEL SUPERIOR (RETÂNGULO LARGO) -->
+            <section class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-soft px-4 sm:px-6 py-5 lg:py-4 flex flex-col lg:flex-row gap-6 items-stretch">
+
+                <!-- COLUNA ESQUERDA: INPUTS -->
+                <div class="w-full lg:w-[55%] flex flex-col">
+                    <h2 class="text-base sm:text-lg font-semibold mb-2 flex items-center gap-2">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-brand-600/10 border border-brand-500/40 text-[11px] text-brand-700 dark:text-brand-200">
+                            1
+                        </span>
+                        Empresas para verificar
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3 leading-relaxed">
+                        A base de <strong>CNPJs restritos</strong> é carregada automaticamente do arquivo
+                        <code class="text-[11px] bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
+                            base_restritos.xlsx
+                        </code>.
+                        Aqui você sobe um Excel/CSV com as empresas que quer conferir.
+                    </p>
+
+                    <!-- Upload lista empresas -->
+                    <div class="mb-3">
+                        <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                            Lista de empresas para verificar (Excel / CSV)
+                        </label>
+                        <input
+                            id="fileInputList"
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            class="block w-full text-xs text-slate-700 dark:text-slate-200 file:text-xs file:font-semibold file:px-3 file:py-1.5 file:rounded-full file:border-0 file:bg-brand-600 file:text-white hover:file:bg-brand-700 cursor-pointer bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5"
+                        >
+                        <p id="fileStatus" class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                            Nenhum arquivo carregado ainda.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center my-2">
+                        <div class="flex-1 h-px bg-slate-200 dark:bg-slate-800"></div>
+                        <span class="px-3 text-[10px] uppercase tracking-wide text-slate-400">ou</span>
+                        <div class="flex-1 h-px bg-slate-200 dark:bg-slate-800"></div>
+                    </div>
+
+                    <!-- Textarea CNPJs -->
+                    <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                        Colar CNPJs manualmente (um por linha)
+                    </label>
+                    <textarea
+                        id="cnpjInput"
+                        rows="5"
+                        class="w-full text-xs font-mono rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/70 focus:border-brand-500/70 resize-none"
+                        placeholder="00.000.000/0001-00&#10;11.111.111/0001-11&#10;..."
+                    ></textarea>
+
+                    <!-- Botões -->
+                    <div class="flex flex-col sm:flex-row gap-2 mt-3">
+                        <button
+                            onclick="checkCNPJs()"
+                            class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-xs sm:text-sm font-semibold text-white px-4 py-2 shadow-lg shadow-brand-600/25 transition-colors">
+                            <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
+                            Verificar
+                        </button>
+                        <button
+                            onclick="fillExample()"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 px-4 py-2 border border-slate-200 dark:border-slate-700 transition-colors">
+                            <i class="fa-solid fa-wand-magic-sparkles text-[11px] text-slate-400"></i>
+                            Exemplo
+                        </button>
+                    </div>
+                    <button
+                        onclick="clearUploadedList()"
+                        class="mt-2 self-start text-[11px] text-slate-500 hover:text-red-500 underline underline-offset-2">
+                        Limpar arquivo carregado
+                    </button>
+                </div>
+
+                <!-- COLUNA DIREITA: KPIs -->
+                <div class="w-full lg:w-[45%] grid grid-rows-3 gap-3">
+                    <!-- Total -->
+                    <div class="relative overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex flex-col items-center text-center">
+                        <div class="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-blue-500/10 blur-2xl"></div>
+                        <div class="relative flex flex-col items-center gap-1">
+                            <div class="h-8 w-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                <i class="fa-solid fa-list-ol text-[13px] text-blue-500"></i>
+                            </div>
+                            <p class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Total analisado</p>
+                            <p id="stat-total" class="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-50">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Restritos -->
+                    <div class="relative overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex flex-col items-center text-center">
+                        <div class="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-red-500/10 blur-2xl"></div>
+                        <div class="relative flex flex-col items-center gap-1">
+                            <div class="h-8 w-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                <i class="fa-solid fa-ban text-[13px] text-red-500"></i>
+                            </div>
+                            <p class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Restritos</p>
+                            <p id="stat-restricted" class="text-xl sm:text-2xl font-semibold text-red-500">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Regulares -->
+                    <div class="relative overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex flex-col items-center text-center">
+                        <div class="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-emerald-500/10 blur-2xl"></div>
+                        <div class="relative flex flex-col items-center gap-1">
+                            <div class="h-8 w-8 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                                <i class="fa-solid fa-circle-check text-[13px] text-emerald-500"></i>
+                            </div>
+                            <p class="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Regulares</p>
+                            <p id="stat-clean" class="text-xl sm:text-2xl font-semibold text-emerald-500">0</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TABELA RESULTADOS -->
+            <section class="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-soft overflow-hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/90">
+                    <div class="flex items-center gap-2">
+                        <div class="h-7 w-7 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/40">
+                            <i class="fa-solid fa-triangle-exclamation text-xs text-red-500"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100">
+                                CNPJs encontrados na base de restritos
+                            </h3>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                                Listagem somente dos CNPJs da sua lista que constam como restritos.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        onclick="exportRestrictedXLSX()"
+                        class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-[11px] sm:text-xs font-semibold text-white px-3 py-2 shadow-md shadow-emerald-600/25 transition-colors">
+                        <i class="fa-solid fa-file-excel text-[11px]"></i>
+                        Baixar XLSX
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-100 dark:bg-slate-900 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                            <tr>
+                                <th class="px-5 py-3 text-left">CNPJ</th>
+                                <th class="px-5 py-3 text-left">Razão Social</th>
+                                <th class="px-5 py-3 text-left">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody" class="divide-y divide-slate-200 dark:divide-slate-800">
+                            <tr>
+                                <td colspan="3" class="px-5 py-10 text-center text-xs text-slate-500 dark:text-slate-400">
+                                    Nenhuma verificação realizada ainda. Carregue um arquivo ou cole CNPJs e clique em
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200">“Verificar”.</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-200 dark:border-slate-900 bg-white/80 dark:bg-slate-950/90">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-center text-[11px] text-slate-500 dark:text-slate-500">
+            BtBlue — Todos os direitos reservados.
+        </div>
+    </footer>
+</div>
+
+<!-- ================== SCRIPT ================== -->
+<script>
+    const DEFAULT_DB_FILE = 'base_restritos.xlsx';
+
+    // Base de restritos (do arquivo) e lista de empresas enviada
+    let restrictedDatabase = {};
+    let uploadedCompanies = [];   // [{cnpjRaw, cnpjFormatted, name}]
+    let lastRestrictedResults = [];
+
+    // ----- TEMA (light/dark) -----
+    function initTheme() {
+        const stored = localStorage.getItem('theme');
+        const html = document.documentElement;
+
+        if (stored === 'light') {
+            html.classList.remove('dark');
+        } else if (stored === 'dark') {
+            html.classList.add('dark');
+        } else {
+            // se não tem, usa preferência do SO
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                html.classList.add('dark');
+            } else {
+                html.classList.remove('dark');
+            }
+        }
+    }
+
+    function toggleTheme() {
+        const html = document.documentElement;
+        const isDark = html.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initTheme();
+        loadDefaultDatabase();
+    });
+
+    // ----- Carrega base_restritos.xlsx do repositório -----
+    async function loadDefaultDatabase() {
+        try {
+            const resp = await fetch(DEFAULT_DB_FILE);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+            const buf = await resp.arrayBuffer();
+            const wb = XLSX.read(buf, { type: 'array' });
+            const sheetName = wb.SheetNames[0];
+            const ws = wb.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+            restrictedDatabase = buildDatabaseFromJson(json);
+            console.log('Base de restritos carregada:', Object.keys(restrictedDatabase).length, 'CNPJs.');
+        } catch (e) {
+            console.error('Falha ao carregar base_restritos.xlsx.', e);
+            alert('Não foi possível carregar base_restritos.xlsx. Verifique se o arquivo está no repositório.');
+            restrictedDatabase = {}; // sem fallback mock, pois aqui é dado real
+        }
+    }
+
+    // Monta base de restritos (CNPJ -> {name})
+    function buildDatabaseFromJson(jsonData) {
+        if (!jsonData.length) return {};
+        const sample = jsonData[0];
+        const cols = Object.keys(sample);
+
+        const cnpjCol = cols.find(c => c.toLowerCase().includes('cnpj'));
+        const nameCol = cols.find(c => {
+            const l = c.toLowerCase();
+            return l.includes('raz') || l.includes('nome');
+        });
+
+        if (!cnpjCol) {
+            console.warn('Nenhuma coluna de CNPJ encontrada na base de restritos.');
+            return {};
+        }
+
+        const db = {};
+        jsonData.forEach(row => {
+            let raw = String(row[cnpjCol] || '').trim();
+            raw = raw.replace(/[^\d]/g, '');
+            if (raw.length !== 14) return;
+
+            const name = nameCol ? String(row[nameCol] || '').trim() : '';
+            db[raw] = { name };
+        });
+        return db;
+    }
+
+    // ----- Upload Excel/CSV com empresas para verificar -----
+    document.getElementById('fileInputList').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const data = new Uint8Array(ev.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const sheetName = wb.SheetNames[0];
+                const ws = wb.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+                const companies = parseCompanyListFromJson(json);
+                uploadedCompanies = companies;
+
+                const statusEl = document.getElementById('fileStatus');
+                if (!companies.length) {
+                    statusEl.textContent = 'Não foram encontradas empresas válidas no arquivo.';
+                } else {
+                    statusEl.textContent = `Arquivo carregado com sucesso: ${companies.length} empresas para verificar.`;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Erro ao ler o arquivo. Verifique se é um Excel/CSV válido.');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function parseCompanyListFromJson(jsonData) {
+        if (!jsonData.length) return [];
+        const sample = jsonData[0];
+        const cols = Object.keys(sample);
+
+        const cnpjCol = cols.find(c => c.toLowerCase().includes('cnpj'));
+        const nameCol = cols.find(c => {
+            const l = c.toLowerCase();
+            return l.includes('raz') || l.includes('nome');
+        });
+
+        if (!cnpjCol) {
+            alert('Não encontrei coluna de CNPJ na planilha de empresas. Renomeie alguma coluna para incluir "CNPJ".');
+            return [];
+        }
+
+        const list = [];
+        jsonData.forEach(row => {
+            let raw = String(row[cnpjCol] || '').trim();
+            raw = raw.replace(/[^\d]/g, '');
+            if (raw.length !== 14) return;
+
+            const name = nameCol ? String(row[nameCol] || '').trim() : '';
+            list.push({
+                cnpjRaw: raw,
+                cnpjFormatted: formatCNPJ(raw),
+                name
+            });
+        });
+        return list;
+    }
+
+    function clearUploadedList() {
+        uploadedCompanies = [];
+        document.getElementById('fileInputList').value = '';
+        document.getElementById('fileStatus').textContent = 'Nenhum arquivo carregado ainda.';
+    }
+
+    // ----- Verificação principal -----
+    function checkCNPJs() {
+        let entries = [];
+
+        if (uploadedCompanies.length > 0) {
+            // Usa lista carregada via Excel
+            entries = uploadedCompanies.map(c => ({
+                cnpjRaw: c.cnpjRaw,
+                cnpjFormatted: c.cnpjFormatted,
+                name: c.name
+            }));
+        } else {
+            // Usa CNPJs colados no textarea
+            const raw = document.getElementById('cnpjInput').value;
+            const linhas = raw.split('\n');
+
+            linhas.forEach(l => {
+                const clean = l.replace(/[^\d]/g, '');
+                if (clean.length === 14) {
+                    entries.push({
+                        cnpjRaw: clean,
+                        cnpjFormatted: formatCNPJ(clean),
+                        name: restrictedDatabase[clean]?.name || '' // se base tiver nome
+                    });
+                }
+            });
+        }
+
+        const total = entries.length;
+        const encontrados = [];
+
+        entries.forEach(item => {
+            if (restrictedDatabase[item.cnpjRaw]) {
+                // Preferir nome da lista, se tiver; senão, nome da base
+                const baseName = restrictedDatabase[item.cnpjRaw].name || '';
+                encontrados.push({
+                    cnpj: item.cnpjFormatted,
+                    raw: item.cnpjRaw,
+                    name: item.name || baseName
+                });
+            }
+        });
+
+        lastRestrictedResults = encontrados;
+
+        document.getElementById('stat-total').innerText = total;
+        document.getElementById('stat-restricted').innerText = encontrados.length;
+        document.getElementById('stat-clean').innerText = total - encontrados.length;
+
+        renderResultsTable();
+    }
+
+    function renderResultsTable() {
+        const tbody = document.getElementById('resultsBody');
+        tbody.innerHTML = '';
+
+        if (!lastRestrictedResults.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="3" class="px-5 py-10 text-center text-xs text-emerald-500 dark:text-emerald-400">
+                        Nenhum CNPJ da lista consta como restrito na base carregada.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        lastRestrictedResults.forEach(item => {
+            tbody.innerHTML += `
+                <tr class="hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors">
+                    <td class="px-5 py-3 font-mono text-xs sm:text-sm text-slate-900 dark:text-slate-100">${item.cnpj}</td>
+                    <td class="px-5 py-3 text-xs sm:text-sm text-slate-800 dark:text-slate-200">${item.name || '-'}</td>
+                    <td class="px-5 py-3 text-xs">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full bg-red-600/15 text-red-600 dark:text-red-300 border border-red-500/40 text-[10px] font-semibold tracking-wide uppercase">
+                            Restrito
+                        </span>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // ----- Exporta restritos em XLSX -----
+    function exportRestrictedXLSX() {
+        if (!lastRestrictedResults.length) {
+            alert('Não há CNPJs restritos para exportar. Faça uma verificação primeiro.');
+            return;
+        }
+
+        const data = lastRestrictedResults.map(r => ({
+            'CNPJ': r.cnpj,
+            'Razão Social': r.name || '',
+            'Status': 'Restrito'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Restritos');
+
+        XLSX.writeFile(wb, 'restritos_btblue.xlsx');
+    }
+
+    // ----- Helpers -----
+    function formatCNPJ(v) {
+        const n = v.replace(/[^\d]/g, '');
+        if (n.length !== 14) return v;
+        return n.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+    }
+
+    function fillExample() {
+        const exemplo = [
+            '12.345.678/0001-99',
+            '98.765.432/0001-00',
+            '11.111.111/0001-11'
+        ].join('\n');
+        document.getElementById('cnpjInput').value = exemplo;
+        clearUploadedList();
+    }
+</script>
+</body>
+</html>
